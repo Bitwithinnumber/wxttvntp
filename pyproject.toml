@@ -1,0 +1,43 @@
+[project]
+name = "crossborder-agent"
+version = "0.1.0"
+description = "跨境电商上架前全链路 AI Agent：选品调研 → 供应商寻源 → 商品采集 → 利润定价 → 合规审核 → 多语言内容 → 图片处理 → Listing 资料包组装"
+requires-python = ">=3.12"
+dependencies = [
+    "langgraph>=0.2.60",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-anthropic>=0.3.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "typer>=0.12.0",
+    "rich>=13.0.0",
+    "openpyxl>=3.1.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+]
+
+[project.scripts]
+cba = "crossborder_agent.cli:app"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.0",
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crossborder_agent"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
