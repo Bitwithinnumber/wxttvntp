@@ -34,13 +34,22 @@ def get_structured_llm(schema, temperature: float = 0.3):
     """
     structured = get_llm(temperature).with_structured_output(schema, method="function_calling")
 
+    try:
+        _empty_dump = schema().model_dump()
+    except Exception:
+        _empty_dump = None
+
     class _Retrying:
         def invoke(self, prompt, attempts: int = 3):
             last = None
             for _ in range(attempts):
                 last = structured.invoke(prompt)
-                if last is not None:
-                    return last
+                if last is None:
+                    continue
+                # 模型偶发调用工具但传空参数，得到全默认值对象，同样视为失败重试
+                if _empty_dump is not None and last.model_dump() == _empty_dump:
+                    continue
+                return last
             raise RuntimeError(f"LLM 结构化输出连续 {attempts} 次为空: {schema.__name__}")
 
     return _Retrying()

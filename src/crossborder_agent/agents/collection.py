@@ -54,12 +54,25 @@ def collection_node(state: PipelineState) -> dict:
     image_urls = [i.get("url", "") for i in images if isinstance(i, dict)] or (
         [item["pic_url"]] if item.get("pic_url") else []
     )
-    attrs = (
-        {str(k): str(v) for k, v in (item.get("props") or {}).items()}
-        if isinstance(item.get("props"), dict)
-        else {}
-    )
+    raw_props = item.get("props") or {}
+    if isinstance(raw_props, dict):
+        attrs = {str(k): str(v) for k, v in raw_props.items()}
+    elif isinstance(raw_props, list):
+        attrs = {
+            str(p.get("name", "")): str(p.get("value", ""))
+            for p in raw_props
+            if isinstance(p, dict) and p.get("name")
+        }
+    else:
+        attrs = {}
     weight_kg, size = _extract_weight_size(attrs)
+    if weight_kg is None:
+        try:
+            iw = float(item.get("item_weight") or 0)
+            if iw > 0:
+                weight_kg = iw
+        except (TypeError, ValueError):
+            pass
     draft = ProductDraft(
         source_offer_id=str(item.get("num_iid", "")),
         source_link=item.get("detail_url", ""),
