@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 output/
-checkpoints.sqlite
+checkpoints.sqlite*
 dist/
 .pytest_cache/
 .ruff_cache/
