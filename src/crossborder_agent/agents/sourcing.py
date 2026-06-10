@@ -40,4 +40,7 @@ analysis 中文说明推荐理由（价格、可代发性、品质信号）与�
     )
     report.keyword_cn = keyword_cn
     report.offers = offers
+    valid_ids = {o.offer_id for o in offers}
+    if report.recommended_offer_id not in valid_ids and offers:
+        report.recommended_offer_id = offers[0].offer_id
     return {"sourcing_report": report}
