@@ -25,9 +25,15 @@ export default function App() {
 
   useEffect(() => {
     fetchNodes().then(setNodes).catch((e) => setError(String(e)));
+    const tid = new URLSearchParams(window.location.search).get("thread");
+    if (tid) {
+      setThreadId(tid);
+      poll(tid);
+    }
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
