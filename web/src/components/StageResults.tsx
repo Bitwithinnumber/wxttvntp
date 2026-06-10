@@ -159,7 +159,7 @@ export default function StageResults({ state, running }: { state: PipelineState;
         <Section
           index="05 / compliance"
           title="合规审核"
-          subtitle={`${compliance.passed ? "通过" : "存在 BLOCKER"}${compliance.hs_code_suggestion ? ` · HS Code ${compliance.hs_code_suggestion}` : ""}`}
+          subtitle={`${compliance.passed ? "通过" : "未通过 · 需先处理风险项"}${compliance.hs_code_suggestion ? ` · HS Code ${compliance.hs_code_suggestion}` : ""}`}
         >
           <p className="mb-4 whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">{compliance.summary}</p>
           <div className="space-y-2">

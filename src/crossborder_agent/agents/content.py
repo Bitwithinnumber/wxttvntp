@@ -41,15 +41,20 @@ def content_node(state: PipelineState) -> dict:
 真实用户搜索联想词（优先覆盖）：{suggest or '无'}
 """
         )
-        if len(listing.title) > title_max:
+        for _ in range(3):
+            if len(listing.title) <= title_max:
+                break
             shorter: LocalizedListing = structured.invoke(
-                f"把以下{LANG_NAMES.get(lang, lang)}标题压缩到 {title_max} 字符以内，"
+                f"把以下{LANG_NAMES.get(lang, lang)}标题压缩到 {title_max} 字符以内"
+                f"（当前 {len(listing.title)} 字符，含空格标点，必须严格少于上限），"
                 f"保留核心关键词，其余字段原样保留：\n标题：{listing.title}\n"
                 f"卖点：{listing.bullet_points}\n描述：{listing.description}\n"
                 f"搜索词：{listing.search_terms}"
             )
-            if shorter.title and len(shorter.title) <= title_max:
+            if shorter.title and len(shorter.title) < len(listing.title):
                 listing.title = shorter.title
+        if len(listing.title) > title_max:
+            listing.title = listing.title[:title_max].rsplit(" ", 1)[0]
         listing.language = lang
         return listing
 
