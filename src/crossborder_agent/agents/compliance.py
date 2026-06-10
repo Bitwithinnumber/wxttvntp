@@ -1,6 +1,6 @@
 """⑤ 合规审核 Agent：LLM 基于商品信息做禁限售/知产/认证/税务初筛。"""
 
-from ..connectors.llm import get_llm
+from ..connectors.llm import get_structured_llm
 from ..models import ComplianceReport
 from ..state import PipelineState
 
@@ -10,8 +10,7 @@ def compliance_node(state: PipelineState) -> dict:
     platforms = state.get("target_platforms", ["amazon"])
     marketplace = state.get("marketplace", "amazon.com")
 
-    llm = get_llm(temperature=0.1)
-    structured = llm.with_structured_output(ComplianceReport)
+    structured = get_structured_llm(ComplianceReport, temperature=0.1)
     report: ComplianceReport = structured.invoke(
         f"""你是跨境电商合规专家。对以下商品做上架前合规初筛，
 目标平台 {platforms}，目标市场 {marketplace}。

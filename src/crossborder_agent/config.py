@@ -14,8 +14,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     # 第三方数据 API
+    market_data_provider: str = "ddgs"  # ddgs（免费） | serpapi
     serpapi_api_key: str = ""  # serpapi.com - Amazon 竞品/市场数据
-    onebound_api_key: str = ""  # open.onebound.cn - 1688 货源数据
+    sourcing_platform: str = "1688"  # 1688 | taobao（取决于 OneBound Key 开通的权限）
+    onebound_api_key: str = ""  # open.onebound.cn - 1688/淘宝货源数据
     onebound_api_secret: str = ""
     exchange_rate_api_key: str = ""  # exchangerate-api.com，留空走免费开放端点
 

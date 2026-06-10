@@ -1,6 +1,6 @@
 """⑥ 内容本地化生成 Agent：多语言标题/五点/描述/搜索词。"""
 
-from ..connectors.llm import get_llm
+from ..connectors.llm import get_structured_llm
 from ..models import ContentPack, LocalizedListing
 from ..state import PipelineState
 
@@ -15,8 +15,7 @@ def content_node(state: PipelineState) -> dict:
     comp_titles = (
         "\n".join(f"- {c.title}" for c in market.competitors[:5]) if market else ""
     )
-    llm = get_llm(temperature=0.7)
-    structured = llm.with_structured_output(LocalizedListing)
+    structured = get_structured_llm(LocalizedListing, temperature=0.7)
 
     listings = []
     for lang in languages:

@@ -1,15 +1,25 @@
-"""① 市场调研/选品 Agent：SerpApi 抓取 Amazon 竞品 + LLM 分析。"""
+"""① 市场调研/选品 Agent：ddgs/SerpApi 抓取 Amazon 竞品 + LLM 分析。"""
 
-from ..connectors.llm import get_llm
-from ..connectors.serpapi_client import search_amazon
+from ..config import get_settings
+from ..connectors.llm import get_structured_llm
 from ..models import CompetitorProduct, MarketReport
 from ..state import PipelineState
+
+
+def _search(keyword: str, marketplace: str) -> list[dict]:
+    if get_settings().market_data_provider == "serpapi":
+        from ..connectors.serpapi_client import search_amazon
+
+        return search_amazon(keyword, marketplace)
+    from ..connectors.ddgs_client import search_amazon_via_ddgs
+
+    return search_amazon_via_ddgs(keyword, marketplace)
 
 
 def market_research_node(state: PipelineState) -> dict:
     keyword = state["keyword"]
     marketplace = state.get("marketplace", "amazon.com")
-    results = search_amazon(keyword, marketplace)[:15]
+    results = _search(keyword, marketplace)[:15]
 
     competitors = []
     for r in results:
@@ -26,12 +36,7 @@ def market_research_node(state: PipelineState) -> dict:
         )
     prices = [c.price for c in competitors if c.price]
 
-    llm = get_llm()
-
-    class _Analysis(MarketReport):
-        pass
-
-    structured = llm.with_structured_output(_Analysis)
+    structured = get_structured_llm(MarketReport)
     comp_lines = "\n".join(
         f"- {c.title[:80]} | ${c.price} | 评分{c.rating} | {c.reviews}评论" for c in competitors
     )

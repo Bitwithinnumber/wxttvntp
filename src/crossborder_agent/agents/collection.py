@@ -1,6 +1,6 @@
-"""③ 商品采集 Agent：OneBound 拉取 1688 商品详情 → 标准化商品草稿。"""
+"""③ 商品采集 Agent：OneBound 拉取货源商品详情 → 标准化商品草稿。"""
 
-from ..connectors.onebound_client import get_1688_item
+from ..connectors.onebound_client import get_source_item
 from ..models import ProductDraft, SkuVariant
 from ..state import PipelineState
 
@@ -13,7 +13,7 @@ def collection_node(state: PipelineState) -> dict:
     if not target:
         raise RuntimeError("没有可采集的货源：寻源结果为空且未指定 source_url")
 
-    item = get_1688_item(target)
+    item = get_source_item(target)
     skus = []
     sku_data = item.get("skus") or {}
     for s in sku_data.get("sku", []) if isinstance(sku_data, dict) else []:

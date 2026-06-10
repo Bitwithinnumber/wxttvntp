@@ -21,4 +21,26 @@ def get_llm(temperature: float = 0.3) -> BaseChatModel:
     kwargs: dict = {"model": s.llm_model, "api_key": s.openai_api_key, "temperature": temperature}
     if s.openai_base_url:
         kwargs["base_url"] = s.openai_base_url
+        if "deepseek" in s.openai_base_url:
+            # DeepSeek 思考模式不支持强制 tool_choice，结构化输出需关闭
+            kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
     return ChatOpenAI(**kwargs)
+
+
+def get_structured_llm(schema, temperature: float = 0.3):
+    """结构化输出 LLM。用 function_calling 以兼容 DeepSeek 等不支持 json_schema 的服务。
+
+    模型偶发不调用工具导致返回 None，这里包一层重试。
+    """
+    structured = get_llm(temperature).with_structured_output(schema, method="function_calling")
+
+    class _Retrying:
+        def invoke(self, prompt, attempts: int = 3):
+            last = None
+            for _ in range(attempts):
+                last = structured.invoke(prompt)
+                if last is not None:
+                    return last
+            raise RuntimeError(f"LLM 结构化输出连续 {attempts} 次为空: {schema.__name__}")
+
+    return _Retrying()
