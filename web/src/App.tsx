@@ -14,7 +14,7 @@ export default function App() {
   const [marketplace, setMarketplace] = useState("amazon.com");
   const [platforms, setPlatforms] = useState<string[]>(["amazon", "shopee"]);
   const [languages, setLanguages] = useState<string[]>(["en", "de"]);
-  const [shippingCny, setShippingCny] = useState("25");
+  const [shippingCny, setShippingCny] = useState("");
   const [targetMargin, setTargetMargin] = useState("30");
   const [threadId, setThreadId] = useState("");
   const [status, setStatus] = useState<PipelineStatus | null>(null);
@@ -114,7 +114,7 @@ export default function App() {
           </Field>
           <Field label="头程物流 CNY/件 · 目标毛利 %">
             <div className="flex gap-2">
-              <input value={shippingCny} onChange={(e) => setShippingCny(e.target.value)} className="input num w-1/2" />
+              <input value={shippingCny} onChange={(e) => setShippingCny(e.target.value)} className="input num w-1/2" placeholder="留空=按重量估算" />
               <input value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} className="input num w-1/2" />
             </div>
           </Field>
