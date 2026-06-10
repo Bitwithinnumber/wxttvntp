@@ -39,6 +39,25 @@ export default function StageResults({ state, running }: { state: PipelineState;
               ))}
             </div>
           )}
+          {market.pain_points?.length > 0 && (
+            <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-zinc-500">用户痛点（来自真实评论/讨论）</p>
+              <ul className="space-y-1.5 text-xs text-zinc-300">
+                {market.pain_points.map((p, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-amber-400/70">!</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+              {market.differentiation && (
+                <p className="mt-3 border-t border-zinc-800 pt-2.5 text-xs leading-relaxed text-emerald-300/90">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">差异化建议 </span>
+                  {market.differentiation}
+                </p>
+              )}
+            </div>
+          )}
           <p className="mb-4 whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">
             {market.analysis}
           </p>
@@ -111,7 +130,9 @@ export default function StageResults({ state, running }: { state: PipelineState;
         <Section index="03 / collect" title="商品采集" subtitle={`${draft.skus.length} SKU · ${draft.images.length} 图`}>
           <p className="mb-2 text-xs text-zinc-300">{draft.title_cn}</p>
           <p className="num mb-4 text-xs text-zinc-500">
-            采购价 ¥{draft.price_cny ?? "—"} ·{" "}
+            采购价 ¥{draft.price_cny ?? "—"}
+            {draft.weight_kg != null && ` · 重量 ${draft.weight_kg}kg`}
+            {draft.package_size_cm && ` · 尺寸 ${draft.package_size_cm}`} ·{" "}
             <a href={draft.source_link} target="_blank" rel="noreferrer" className="text-emerald-400/90 transition-colors hover:text-emerald-300">
               货源链接 ↗
             </a>
@@ -139,6 +160,16 @@ export default function StageResults({ state, running }: { state: PipelineState;
                   {p.suggested_price} <span className="text-xs font-normal text-zinc-500">{p.currency}</span>
                 </p>
                 <p className="num mt-0.5 text-zinc-500">盈亏平衡 {p.breakeven_price} · 毛利 {p.gross_margin_pct}%</p>
+                {p.price_tiers && Object.keys(p.price_tiers).length > 0 && (
+                  <div className="num mt-2 flex gap-1.5">
+                    {Object.entries(p.price_tiers).map(([k, v]) => (
+                      <span key={k} className="rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-zinc-300">
+                        {k} <span className="text-emerald-300/90">{v}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {p.shipping_note && <p className="mt-1.5 text-[11px] text-zinc-500">{p.shipping_note}</p>}
                 {p.market_fit && <p className="mt-1.5 text-[11px] text-zinc-400">{p.market_fit}</p>}
                 <div className="num mt-3 space-y-1 border-t border-zinc-800 pt-2.5 text-zinc-500">
                   {Object.entries(p.cost_breakdown).map(([k, v]) => (
@@ -187,9 +218,13 @@ export default function StageResults({ state, running }: { state: PipelineState;
                   <span className="mr-1.5 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
                     {t.role}
                   </span>
+                  {t.width != null && <span className="num mr-1.5 text-zinc-500">{t.width}×{t.height}</span>}
                   {t.issues.length > 0 ? t.issues.join("；") : "无问题"}
                 </p>
-                {t.actions.length > 0 && <p className="mt-1 text-amber-300/80">待处理：{t.actions.join("；")}</p>}
+                {t.processed_file && (
+                  <p className="mt-1 text-emerald-300/90">已本地处理 · {t.processed_file}</p>
+                )}
+                {t.actions.length > 0 && <p className="mt-1 text-amber-300/80">{t.actions.join("；")}</p>}
               </div>
             ))}
           </div>
@@ -253,7 +288,7 @@ function StageSkeleton() {
   );
 }
 
-function ContentSection({ listings }: { listings: { language: string; title: string; bullet_points: string[]; description: string; search_terms: string }[] }) {
+function ContentSection({ listings }: { listings: { language: string; title: string; bullet_points: string[]; description: string; search_terms: string; title_variants: Record<string, string> }[] }) {
   const [lang, setLang] = useState(listings[0]?.language ?? "en");
   const current = listings.find((l) => l.language === lang) ?? listings[0];
   if (!current) return null;
@@ -275,6 +310,17 @@ function ContentSection({ listings }: { listings: { language: string; title: str
         ))}
       </div>
       <p className="mb-3 text-sm font-medium leading-snug text-zinc-100">{current.title}</p>
+      {current.title_variants && Object.keys(current.title_variants).length > 0 && (
+        <div className="mb-4 space-y-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-xs text-zinc-400">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">平台适配标题</p>
+          {Object.entries(current.title_variants).map(([p, t]) => (
+            <p key={p}>
+              <span className="mr-2 font-mono text-[10px] uppercase tracking-wider text-emerald-400/80">{p}</span>
+              {t}
+            </p>
+          ))}
+        </div>
+      )}
       <ul className="mb-4 space-y-1.5 text-xs text-zinc-300">
         {current.bullet_points.map((b, i) => (
           <li key={i} className="flex gap-2">

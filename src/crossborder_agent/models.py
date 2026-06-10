@@ -19,6 +19,8 @@ class MarketReport(BaseModel):
     price_high: float | None = None
     price_median: float | None = None
     keyword_suggestions: list[str] = Field(default_factory=list)
+    pain_points: list[str] = Field(default_factory=list)  # 来自真实评论/讨论的痛点
+    differentiation: str = ""  # 差异化切入建议
     opportunity_score: int = 0  # 0-100
     analysis: str = ""
 
@@ -58,6 +60,8 @@ class ProductDraft(BaseModel):
     images: list[str] = Field(default_factory=list)
     attributes: dict[str, str] = Field(default_factory=dict)
     description_cn: str = ""
+    weight_kg: float | None = None  # 从属性提取的重量
+    package_size_cm: str = ""  # 从属性提取的尺寸/规格
 
 
 class PlatformPricing(BaseModel):
@@ -68,6 +72,8 @@ class PlatformPricing(BaseModel):
     gross_margin_pct: float = 0.0
     breakeven_price: float = 0.0
     market_fit: str = ""  # 与竞品价格带的关系
+    price_tiers: dict[str, float] = Field(default_factory=dict)  # 日常/促销/底价
+    shipping_note: str = ""  # 头程估算依据
 
 
 class PricingReport(BaseModel):
@@ -97,6 +103,7 @@ class LocalizedListing(BaseModel):
     bullet_points: list[str] = Field(default_factory=list)
     description: str = ""
     search_terms: str = ""
+    title_variants: dict[str, str] = Field(default_factory=dict)  # 平台→适配标题
 
 
 class ContentPack(BaseModel):
@@ -108,6 +115,9 @@ class ImageTask(BaseModel):
     role: str = "gallery"  # main | gallery | detail
     issues: list[str] = Field(default_factory=list)
     actions: list[str] = Field(default_factory=list)
+    width: int | None = None
+    height: int | None = None
+    processed_file: str = ""  # 本地处理后（1:1/放大）的文件名
 
 
 class ImagePlan(BaseModel):

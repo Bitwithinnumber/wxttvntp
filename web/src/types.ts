@@ -21,6 +21,8 @@ export interface MarketReport {
   price_high: number | null;
   price_median: number | null;
   keyword_suggestions: string[];
+  pain_points: string[];
+  differentiation: string;
   opportunity_score: number;
   analysis: string;
 }
@@ -60,6 +62,8 @@ export interface ProductDraft {
   images: string[];
   attributes: Record<string, string>;
   description_cn: string;
+  weight_kg: number | null;
+  package_size_cm: string;
 }
 
 export interface PlatformPricing {
@@ -70,6 +74,8 @@ export interface PlatformPricing {
   gross_margin_pct: number;
   breakeven_price: number;
   market_fit: string;
+  price_tiers: Record<string, number>;
+  shipping_note: string;
 }
 
 export interface PricingReport {
@@ -99,6 +105,7 @@ export interface LocalizedListing {
   bullet_points: string[];
   description: string;
   search_terms: string;
+  title_variants: Record<string, string>;
 }
 
 export interface ContentPack {
@@ -110,6 +117,9 @@ export interface ImageTask {
   role: string;
   issues: string[];
   actions: string[];
+  width: number | null;
+  height: number | null;
+  processed_file: string;
 }
 
 export interface ImagePlan {

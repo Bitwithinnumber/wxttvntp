@@ -69,10 +69,23 @@ def assembly_node(state: PipelineState) -> dict:
     packages = []
     for p in platforms:
         plan = next((pl for pl in pricing.plans if pl.platform == p), None) if pricing else None
+        listings_payload = []
+        if content:
+            for listing in content.listings:
+                d = listing.model_dump()
+                # 按平台选用适配标题（严格平台用压缩版，宽松平台用完整版）
+                d["title"] = listing.title_variants.get(p, listing.title)
+                d.pop("title_variants", None)
+                listings_payload.append(d)
         payload = {
             "platform": p,
             "source": {"offer_id": draft.source_offer_id, "link": draft.source_link},
-            "listings": [listing.model_dump() for listing in content.listings] if content else [],
+            "listings": listings_payload,
+            "product": {
+                "weight_kg": draft.weight_kg,
+                "package_size_cm": draft.package_size_cm,
+                "min_order": draft.min_order,
+            },
             "price": plan.model_dump() if plan else {},
             "images": [t.model_dump() for t in images.tasks] if images else [],
             "skus": [sku.model_dump() for sku in draft.skus],
@@ -84,7 +97,7 @@ def assembly_node(state: PipelineState) -> dict:
         checklist = ["人工复核标题与卖点是否准确", "确认主图已按要求处理", "核对最终售价与运费模板"]
         checklist = [f"【质检】{q}" for q in quality_issues] + checklist
         if compliance and not compliance.passed:
-            checklist.insert(0, "存在合规 BLOCKER，必须先解决后再上架")
+            checklist.insert(0, "合规审核未通过，必须先处理风险项再上架")
 
         pkg = ListingPackage(platform=p, payload=payload, review_checklist=checklist)
         packages.append(pkg)
@@ -113,6 +126,18 @@ def _write_xlsx(path: Path, pkg: ListingPackage) -> None:
     if price:
         ws.append(["建议售价", f"{price.get('suggested_price')} {price.get('currency')}"])
         ws.append(["盈亏平衡价", price.get("breakeven_price")])
+        for tier, v in (price.get("price_tiers") or {}).items():
+            ws.append([tier, v])
+        if price.get("shipping_note"):
+            ws.append(["头程估算", price["shipping_note"]])
+    product = payload.get("product", {})
+    if product.get("weight_kg"):
+        ws.append(["重量(kg)", product["weight_kg"]])
+    if product.get("package_size_cm"):
+        ws.append(["尺寸", product["package_size_cm"]])
+    for i, sku in enumerate(payload.get("skus", []), 1):
+        desc = f"{sku.get('properties')} | ¥{sku.get('price_cny')} | 库存{sku.get('stock')}"
+        ws.append([f"SKU{i}", desc])
     for i, img in enumerate(payload.get("images", []), 1):
         ws.append([f"图片{i}({img.get('role')})", img.get("url")])
     ws.append(["平台规则", payload.get("field_notes", "")])

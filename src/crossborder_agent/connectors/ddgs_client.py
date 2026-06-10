@@ -19,33 +19,78 @@ def get_keyword_suggestions(keyword: str, max_results: int = 10) -> list[str]:
     return [s for s in suggestions if s.lower() != keyword.lower()][:max_results]
 
 
+def _parse_result(r: dict) -> dict:
+    link = r.get("href", "")
+    asin_m = re.search(r"/dp/([A-Z0-9]{10})", link)
+    snippet = f"{r.get('title', '')} {r.get('body', '')}"
+    price_m = re.search(r"[$€£]\s?(\d+(?:[.,]\d{1,2})?)", snippet)
+    rating_m = re.search(r"(\d\.\d)\s*(?:out of 5|/5|stars)", snippet)
+    reviews_m = re.search(r"([\d,]{2,})\s*(?:ratings|reviews|customer)", snippet)
+    return {
+        "asin": asin_m.group(1) if asin_m else "",
+        "title": r.get("title", ""),
+        "link": link,
+        "snippet": r.get("body", ""),
+        "extracted_price": float(price_m.group(1).replace(",", ".")) if price_m else None,
+        "rating": float(rating_m.group(1)) if rating_m else None,
+        "reviews": int(reviews_m.group(1).replace(",", "")) if reviews_m else None,
+    }
+
+
 def search_amazon_via_ddgs(
     keyword: str, domain: str = "amazon.com", max_results: int = 15
 ) -> list[dict]:
-    """通过 DuckDuckGo 限定 site:amazon 搜索竞品，返回标题/链接/摘要（含可解析价格）。"""
-    results = []
+    """多查询策略搜竞品：优先 /dp/ 单品页，结果不足时自动补抓。"""
+    queries = [
+        f"site:{domain}/dp {keyword}",
+        f"site:{domain} {keyword}",
+        f"site:{domain} {keyword} stars ratings",
+        f"site:{domain} best {keyword}",
+    ]
+    seen: set[str] = set()
+    results: list[dict] = []
     with DDGS() as ddgs:
-        for r in ddgs.text(f"site:{domain} {keyword}", max_results=max_results * 2):
-            link = r.get("href", "")
-            if _IRRELEVANT_PATH.search(link):
+        for q in queries:
+            n_dp = sum(1 for x in results if x["asin"])
+            n_priced = sum(1 for x in results if x["extracted_price"])
+            if len(results) >= max_results and n_dp >= 5 and n_priced >= 5:
+                break  # 充分性自检通过，无需继续补抓
+            try:
+                rows = list(ddgs.text(q, max_results=max_results * 2))
+            except Exception:
                 continue
-            asin_m = re.search(r"/dp/([A-Z0-9]{10})", link)
-            snippet = f"{r.get('title', '')} {r.get('body', '')}"
-            price_m = re.search(r"[$€£]\s?(\d+(?:[.,]\d{1,2})?)", snippet)
-            price = float(price_m.group(1).replace(",", ".")) if price_m else None
-            rating_m = re.search(r"(\d\.\d)\s*(?:out of 5|/5|stars)", snippet)
-            reviews_m = re.search(r"([\d,]{2,})\s*(?:ratings|reviews|customer)", snippet)
-            results.append(
-                {
-                    "asin": asin_m.group(1) if asin_m else "",
-                    "title": r.get("title", ""),
-                    "link": link,
-                    "snippet": r.get("body", ""),
-                    "extracted_price": price,
-                    "rating": float(rating_m.group(1)) if rating_m else None,
-                    "reviews": int(reviews_m.group(1).replace(",", "")) if reviews_m else None,
-                }
-            )
-            if len(results) >= max_results:
+            for r in rows:
+                link = r.get("href", "")
+                if not link or link in seen or _IRRELEVANT_PATH.search(link):
+                    continue
+                seen.add(link)
+                results.append(_parse_result(r))
+    results.sort(key=lambda x: (not x["asin"], x["extracted_price"] is None))
+    return results[:max_results]
+
+
+def search_review_insights(keyword: str, max_results: int = 10) -> list[dict]:
+    """抓取真实用户评论/讨论（reddit、测评站等），用于痛点挖掘。"""
+    queries = [
+        f"{keyword} complaints problems review",
+        f"{keyword} reddit worth it disappointed",
+    ]
+    seen: set[str] = set()
+    out: list[dict] = []
+    with DDGS() as ddgs:
+        for q in queries:
+            if len(out) >= max_results:
                 break
-    return results
+            try:
+                rows = list(ddgs.text(q, max_results=max_results))
+            except Exception:
+                continue
+            for r in rows:
+                link = r.get("href", "")
+                if not link or link in seen:
+                    continue
+                seen.add(link)
+                out.append(
+                    {"title": r.get("title", ""), "link": link, "body": r.get("body", "")}
+                )
+    return out[:max_results]
