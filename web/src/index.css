@@ -1,0 +1,59 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-[#0a0a0b] font-sans text-zinc-200 antialiased;
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    rgb(16 185 129 / 0.06),
+    transparent
+  );
+}
+
+::selection {
+  @apply bg-emerald-500/30;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.input {
+  @apply w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none transition-colors duration-200 placeholder:text-zinc-600;
+}
+.input:hover {
+  @apply border-zinc-700;
+}
+.input:focus {
+  @apply border-emerald-500/60 ring-2 ring-emerald-500/15;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.skeleton {
+  @apply rounded-md bg-zinc-900;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.04),
+    transparent
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+}

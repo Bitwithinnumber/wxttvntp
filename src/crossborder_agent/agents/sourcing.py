@@ -1,0 +1,67 @@
+"""② 供应商寻源 Agent：OneBound 货源平台（1688/淘宝）搜索 + LLM 评估推荐。"""
+
+from ..connectors.llm import get_structured_llm
+from ..connectors.onebound_client import search_source_items
+from ..models import SourcingReport, SupplierOffer
+from ..state import PipelineState
+
+
+def sourcing_node(state: PipelineState) -> dict:
+    if state.get("source_url"):
+        return {
+            "sourcing_report": SourcingReport(analysis="用户直接指定货源链接，跳过寻源环节。")
+        }
+    keyword_cn = state.get("keyword_cn") or state["keyword"]
+    seen: set[str] = set()
+    items: list[dict] = []
+    for q in (keyword_cn, f"{keyword_cn} 代发"):  # 多关键词召回合并去重
+        try:
+            rows = search_source_items(q)
+        except Exception:
+            continue
+        for i in rows:
+            iid = str(i.get("num_iid", ""))
+            if not iid or iid in seen:
+                continue
+            seen.add(iid)
+            items.append(i)
+        if len(items) >= 20:
+            break
+    items = items[:20]
+    offers = [
+        SupplierOffer(
+            offer_id=str(i.get("num_iid", "")),
+            title=i.get("title", ""),
+            price_cny=float(i["price"]) if i.get("price") else None,
+            seller=i.get("seller_nick", ""),
+            sales=str(i.get("sales") or ""),
+            link=i.get("detail_url", ""),
+            pic_url=i.get("pic_url", ""),
+        )
+        for i in items
+    ]
+
+    structured = get_structured_llm(SourcingReport)
+    offer_lines = "\n".join(
+        f"- ID:{o.offer_id} | {o.title[:60]} | ¥{o.price_cny} | 卖家:{o.seller}"
+        + (f" | 销量:{o.sales}" if o.sales else "")
+        for o in offers
+    )
+    report: SourcingReport = structured.invoke(
+        f"""你是跨境电商供应链专家。以下是货源平台上「{keyword_cn}」的真实货源搜索结果，
+请评估并推荐最适合跨境代发的货源（recommended_offer_id 填货源 ID）。
+analysis 用中文按以下结构输出：
+【推荐理由】价格竞争力/销量信号/可代发性
+【备选】列 2 个备选货源 ID 及各自优势
+【风险提示】货源可能的品质/供货风险与验货建议
+
+货源列表：
+{offer_lines}
+"""
+    )
+    report.keyword_cn = keyword_cn
+    report.offers = offers
+    valid_ids = {o.offer_id for o in offers}
+    if report.recommended_offer_id not in valid_ids and offers:
+        report.recommended_offer_id = offers[0].offer_id
+    return {"sourcing_report": report}
