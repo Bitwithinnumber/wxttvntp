@@ -16,14 +16,14 @@ from .agents.sourcing import sourcing_node
 from .config import get_settings
 
 NODES = [
-    ("market_research", market_research_node),
-    ("sourcing", sourcing_node),
-    ("collection", collection_node),
-    ("pricing", pricing_node),
-    ("compliance", compliance_node),
-    ("content", content_node),
-    ("images", images_node),
-    ("assembly", assembly_node),
+    ("market_research", "选品调研", market_research_node),
+    ("sourcing", "供应商寻源", sourcing_node),
+    ("collection", "商品采集", collection_node),
+    ("pricing", "利润测算定价", pricing_node),
+    ("compliance", "合规审核", compliance_node),
+    ("content", "多语言内容", content_node),
+    ("images", "图片处理", images_node),
+    ("assembly", "资料包组装", assembly_node),
 ]
 
 
@@ -31,10 +31,10 @@ def build_graph(checkpoint: bool = True):
     from .state import PipelineState
 
     g = StateGraph(PipelineState)
-    for name, fn in NODES:
+    for name, _label, fn in NODES:
         g.add_node(name, fn)
     g.add_edge(START, NODES[0][0])
-    for (a, _), (b, _) in zip(NODES, NODES[1:], strict=False):
+    for (a, _, _), (b, _, _) in zip(NODES, NODES[1:], strict=False):
         g.add_edge(a, b)
     g.add_edge(NODES[-1][0], END)
 

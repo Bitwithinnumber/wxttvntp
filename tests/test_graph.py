@@ -5,7 +5,7 @@ from crossborder_agent.models import ProductDraft
 
 def test_graph_compiles_with_all_nodes():
     graph = build_graph(checkpoint=False)
-    node_names = [n for n, _ in NODES]
+    node_names = [n for n, _label, _fn in NODES]
     assert node_names == [
         "market_research",
         "sourcing",

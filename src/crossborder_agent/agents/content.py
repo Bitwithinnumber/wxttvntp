@@ -1,4 +1,6 @@
-"""⑥ 内容本地化生成 Agent：多语言标题/五点/描述/搜索词。"""
+"""⑥ 内容本地化生成 Agent：多语言标题/五点/描述/搜索词（并行生成）。"""
+
+from concurrent.futures import ThreadPoolExecutor
 
 from ..connectors.llm import get_structured_llm
 from ..models import ContentPack, LocalizedListing
@@ -17,8 +19,7 @@ def content_node(state: PipelineState) -> dict:
     )
     structured = get_structured_llm(LocalizedListing, temperature=0.7)
 
-    listings = []
-    for lang in languages:
+    def _generate(lang: str) -> LocalizedListing:
         listing: LocalizedListing = structured.invoke(
             f"""你是跨境电商 Listing 文案专家。基于以下中文商品信息，
 生成{LANG_NAMES.get(lang, lang)}({lang}) Listing：
@@ -34,5 +35,8 @@ def content_node(state: PipelineState) -> dict:
 """
         )
         listing.language = lang
-        listings.append(listing)
+        return listing
+
+    with ThreadPoolExecutor(max_workers=min(len(languages), 5)) as ex:
+        listings = list(ex.map(_generate, languages))
     return {"content_pack": ContentPack(listings=listings)}

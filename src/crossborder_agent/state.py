@@ -19,7 +19,9 @@ class PipelineState(TypedDict, total=False):
     marketplace: str  # 如 amazon.com / amazon.de
     target_platforms: list[str]  # amazon / shopee / tiktok / ebay / shopify
     target_languages: list[str]  # en / de / fr / es / ja ...
-    source_url: str  # 可选：直接指定 1688 货源链接，跳过寻源
+    source_url: str  # 可选：直接指定货源链接，跳过寻源
+    shipping_cny: float  # 头程物流估算/件（默认 25）
+    target_margin: float  # 目标毛利率（默认 0.30）
 
     # 各环节产出
     market_report: MarketReport

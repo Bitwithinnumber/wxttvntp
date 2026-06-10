@@ -22,15 +22,17 @@ def pricing_node(state: PipelineState) -> dict:
     cost_cny = draft.price_cny or 0.0
     rates = get_rates("CNY")
     platforms = state.get("target_platforms", ["amazon"])
+    shipping_cny = state.get("shipping_cny") or DEFAULT_SHIPPING_CNY
+    target_margin = state.get("target_margin") or TARGET_MARGIN
 
     plans = []
     for p in platforms:
         fee = PLATFORM_FEES.get(p, PLATFORM_FEES["amazon"])
         cur = fee["currency"]
         rate = rates.get(cur, 0.14)
-        landed_cost = (cost_cny + DEFAULT_SHIPPING_CNY) * rate + fee["fulfillment"]
+        landed_cost = (cost_cny + shipping_cny) * rate + fee["fulfillment"]
         breakeven = landed_cost / (1 - fee["commission"])
-        suggested = round(landed_cost / (1 - fee["commission"] - TARGET_MARGIN), 2)
+        suggested = round(landed_cost / (1 - fee["commission"] - target_margin), 2)
         plans.append(
             PlatformPricing(
                 platform=p,
@@ -38,11 +40,11 @@ def pricing_node(state: PipelineState) -> dict:
                 suggested_price=suggested,
                 cost_breakdown={
                     "采购成本": round(cost_cny * rate, 2),
-                    "头程物流": round(DEFAULT_SHIPPING_CNY * rate, 2),
+                    "头程物流": round(shipping_cny * rate, 2),
                     "履约费": fee["fulfillment"],
                     "平台佣金率": fee["commission"],
                 },
-                gross_margin_pct=round(TARGET_MARGIN * 100, 1),
+                gross_margin_pct=round(target_margin * 100, 1),
                 breakeven_price=round(breakeven, 2),
             )
         )

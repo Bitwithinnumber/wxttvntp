@@ -21,7 +21,9 @@ def run(
         "amazon", help="目标平台，逗号分隔: amazon,shopee,tiktok,ebay,shopify"
     ),
     languages: str = typer.Option("en", help="Listing 语言，逗号分隔: en,de,fr,es,ja"),
-    source_url: str = typer.Option("", help="可选：直接指定 1688 货源链接，跳过寻源"),
+    source_url: str = typer.Option("", help="可选：直接指定货源链接，跳过寻源"),
+    shipping_cny: float = typer.Option(0.0, help="头程物流估算/件（CNY，默认 25）"),
+    target_margin: float = typer.Option(0.0, help="目标毛利率（如 0.3）"),
     thread_id: str = typer.Option("", help="流程 ID（用于断点恢复）"),
 ):
     """运行上架前全链路：选品 → 寻源 → 采集 → 定价 → 合规 → 内容 → 图片 → 资料包。"""
@@ -36,6 +38,10 @@ def run(
         "target_languages": [lg.strip() for lg in languages.split(",")],
         "source_url": source_url,
     }
+    if shipping_cny:
+        state["shipping_cny"] = shipping_cny
+    if target_margin:
+        state["target_margin"] = target_margin
     console.print(f"[bold]流程 ID: {tid}[/bold]（中断后可用 --thread-id {tid} 恢复）")
     for event in graph.stream(state, config=config):
         for node, _update in event.items():

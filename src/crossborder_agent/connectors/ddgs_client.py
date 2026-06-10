@@ -17,6 +17,8 @@ def search_amazon_via_ddgs(
             snippet = f"{r.get('title', '')} {r.get('body', '')}"
             price_m = re.search(r"[$€£]\s?(\d+(?:[.,]\d{1,2})?)", snippet)
             price = float(price_m.group(1).replace(",", ".")) if price_m else None
+            rating_m = re.search(r"(\d\.\d)\s*(?:out of 5|/5|stars)", snippet)
+            reviews_m = re.search(r"([\d,]{2,})\s*(?:ratings|reviews|customer)", snippet)
             results.append(
                 {
                     "asin": asin_m.group(1) if asin_m else "",
@@ -24,6 +26,8 @@ def search_amazon_via_ddgs(
                     "link": link,
                     "snippet": r.get("body", ""),
                     "extracted_price": price,
+                    "rating": float(rating_m.group(1)) if rating_m else None,
+                    "reviews": int(reviews_m.group(1).replace(",", "")) if reviews_m else None,
                 }
             )
     return results
