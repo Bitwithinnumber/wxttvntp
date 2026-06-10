@@ -25,6 +25,9 @@ def pricing_node(state: PipelineState) -> dict:
     shipping_cny = state.get("shipping_cny") or DEFAULT_SHIPPING_CNY
     target_margin = state.get("target_margin") or TARGET_MARGIN
 
+    market = state.get("market_report")
+    band = (market.price_low, market.price_high) if market and market.price_low else None
+
     plans = []
     for p in platforms:
         fee = PLATFORM_FEES.get(p, PLATFORM_FEES["amazon"])
@@ -33,11 +36,21 @@ def pricing_node(state: PipelineState) -> dict:
         landed_cost = (cost_cny + shipping_cny) * rate + fee["fulfillment"]
         breakeven = landed_cost / (1 - fee["commission"])
         suggested = round(landed_cost / (1 - fee["commission"] - target_margin), 2)
+        if band and cur == "USD":
+            if suggested < band[0]:
+                fit = f"低于竞品价格带 {band[0]}~{band[1]}，有价格优势"
+            elif suggested > band[1]:
+                fit = f"高于竞品价格带 {band[0]}~{band[1]}，需差异化支撑溢价"
+            else:
+                fit = f"落在竞品价格带 {band[0]}~{band[1]} 内"
+        else:
+            fit = ""
         plans.append(
             PlatformPricing(
                 platform=p,
                 currency=cur,
                 suggested_price=suggested,
+                market_fit=fit,
                 cost_breakdown={
                     "采购成本": round(cost_cny * rate, 2),
                     "头程物流": round(shipping_cny * rate, 2),
@@ -49,19 +62,19 @@ def pricing_node(state: PipelineState) -> dict:
             )
         )
 
-    market = state.get("market_report")
     llm = get_llm()
-    band = (
-        f"竞品价格带 {market.price_low}~{market.price_high} {plans[0].currency}"
-        if market and market.price_low
+    band_desc = (
+        f"竞品价格带 {band[0]}~{band[1]} USD，中位价 {market.price_median or '?'}"
+        if band
         else "无竞品价格数据"
     )
     plan_lines = "\n".join(
         f"- {pl.platform}: 建议价 {pl.suggested_price} {pl.currency}, 盈亏平衡 {pl.breakeven_price}"
+        + (f"（{pl.market_fit}）" if pl.market_fit else "")
         for pl in plans
     )
     analysis = llm.invoke(
-        f"""你是跨境电商定价专家。商品采购成本 ¥{cost_cny}，{band}。
+        f"""你是跨境电商定价专家。商品采购成本 ¥{cost_cny}，{band_desc}。
 测算结果：
 {plan_lines}
 请用中文给出定价策略建议（是否落在竞品价格带、新品期/稳定期定价、促销空间），200字内。"""

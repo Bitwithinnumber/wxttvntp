@@ -19,6 +19,7 @@ def sourcing_node(state: PipelineState) -> dict:
             title=i.get("title", ""),
             price_cny=float(i["price"]) if i.get("price") else None,
             seller=i.get("seller_nick", ""),
+            sales=str(i.get("sales") or ""),
             link=i.get("detail_url", ""),
             pic_url=i.get("pic_url", ""),
         )
@@ -27,7 +28,9 @@ def sourcing_node(state: PipelineState) -> dict:
 
     structured = get_structured_llm(SourcingReport)
     offer_lines = "\n".join(
-        f"- ID:{o.offer_id} | {o.title[:60]} | ¥{o.price_cny} | 卖家:{o.seller}" for o in offers
+        f"- ID:{o.offer_id} | {o.title[:60]} | ¥{o.price_cny} | 卖家:{o.seller}"
+        + (f" | 销量:{o.sales}" if o.sales else "")
+        for o in offers
     )
     report: SourcingReport = structured.invoke(
         f"""你是跨境电商供应链专家。以下是货源平台上「{keyword_cn}」的真实货源搜索结果，

@@ -2,9 +2,21 @@
 
 import re
 
+import httpx
 from ddgs import DDGS
 
 _IRRELEVANT_PATH = re.compile(r"/(e/[A-Z0-9]{10}|author|stores/page|gp/help|hz/)")
+
+
+def get_keyword_suggestions(keyword: str, max_results: int = 10) -> list[str]:
+    """DuckDuckGo 自动补全：真实搜索联想词，用于关键词调研。"""
+    resp = httpx.get(
+        "https://duckduckgo.com/ac/", params={"q": keyword, "type": "list"}, timeout=15
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    suggestions = data[1] if isinstance(data, list) and len(data) > 1 else []
+    return [s for s in suggestions if s.lower() != keyword.lower()][:max_results]
 
 
 def search_amazon_via_ddgs(

@@ -10,33 +10,46 @@ interface Props {
 export default function Pipeline({ nodes, doneNodes, running, failed }: Props) {
   const currentIdx = doneNodes.length;
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <ol className="grid grid-cols-4 gap-y-4 sm:grid-cols-8">
       {nodes.map((n, i) => {
         const done = doneNodes.includes(n.id);
         const active = running && i === currentIdx;
         const isFailed = failed && i === currentIdx;
         return (
-          <div key={n.id} className="flex items-center gap-1">
-            <div
-              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border ${
+          <li key={n.id} className="relative flex flex-col items-center gap-2 text-center">
+            {i > 0 && (
+              <span
+                className={`absolute left-[-50%] top-[13px] h-px w-full transition-colors duration-500 ${
+                  done || active || isFailed ? "bg-emerald-500/50" : "bg-zinc-800"
+                }`}
+              />
+            )}
+            <span
+              className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[11px] transition-all duration-300 ${
                 done
-                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                  ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300"
                   : isFailed
-                    ? "bg-red-500/15 border-red-500/40 text-red-300"
+                    ? "border-red-500/60 bg-red-500/15 text-red-300"
                     : active
-                      ? "bg-sky-500/15 border-sky-500/40 text-sky-300 animate-pulse"
-                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                      ? "border-emerald-400 bg-emerald-500/20 text-emerald-200"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-600"
               }`}
             >
-              <span>
-                {done ? "✓" : isFailed ? "✕" : active ? "●" : i + 1}
-              </span>
+              {done ? "✓" : isFailed ? "✕" : i + 1}
+              {active && (
+                <span className="absolute inset-0 animate-ping rounded-full border border-emerald-400/60" />
+              )}
+            </span>
+            <span
+              className={`text-[11px] leading-tight transition-colors duration-300 ${
+                done || active ? "text-zinc-300" : isFailed ? "text-red-300" : "text-zinc-600"
+              }`}
+            >
               {n.label}
-            </div>
-            {i < nodes.length - 1 && <span className="text-slate-600">→</span>}
-          </div>
+            </span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

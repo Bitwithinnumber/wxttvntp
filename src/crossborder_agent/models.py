@@ -17,6 +17,8 @@ class MarketReport(BaseModel):
     competitors: list[CompetitorProduct] = Field(default_factory=list)
     price_low: float | None = None
     price_high: float | None = None
+    price_median: float | None = None
+    keyword_suggestions: list[str] = Field(default_factory=list)
     opportunity_score: int = 0  # 0-100
     analysis: str = ""
 
@@ -27,6 +29,7 @@ class SupplierOffer(BaseModel):
     price_cny: float | None = None
     min_order: int | None = None
     seller: str = ""
+    sales: str = ""
     link: str = ""
     pic_url: str = ""
 
@@ -64,6 +67,7 @@ class PlatformPricing(BaseModel):
     cost_breakdown: dict[str, float] = Field(default_factory=dict)
     gross_margin_pct: float = 0.0
     breakeven_price: float = 0.0
+    market_fit: str = ""  # 与竞品价格带的关系
 
 
 class PricingReport(BaseModel):

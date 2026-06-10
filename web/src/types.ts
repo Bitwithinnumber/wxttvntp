@@ -19,6 +19,8 @@ export interface MarketReport {
   competitors: Competitor[];
   price_low: number | null;
   price_high: number | null;
+  price_median: number | null;
+  keyword_suggestions: string[];
   opportunity_score: number;
   analysis: string;
 }
@@ -29,6 +31,7 @@ export interface SupplierOffer {
   price_cny: number | null;
   min_order: number | null;
   seller: string;
+  sales: string;
   link: string;
   pic_url: string;
 }
@@ -66,6 +69,7 @@ export interface PlatformPricing {
   cost_breakdown: Record<string, number>;
   gross_margin_pct: number;
   breakeven_price: number;
+  market_fit: string;
 }
 
 export interface PricingReport {
