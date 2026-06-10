@@ -34,20 +34,29 @@ def get_structured_llm(schema, temperature: float = 0.3):
     """
     structured = get_llm(temperature).with_structured_output(schema, method="function_calling")
 
-    try:
-        _empty_dump = schema().model_dump()
-    except Exception:
-        _empty_dump = None
+    from pydantic_core import PydanticUndefined
+
+    def _is_all_default(obj) -> bool:
+        """模型偶发调用工具但只传必填参数，其余全为默认值，视为无效输出。"""
+        dump = obj.model_dump()
+        checked = False
+        for name, f in schema.model_fields.items():
+            if f.default is not PydanticUndefined:
+                default = f.default
+            elif f.default_factory is not None:
+                default = f.default_factory()
+            else:
+                continue
+            checked = True
+            if dump.get(name) != default:
+                return False
+        return checked
 
     class _Retrying:
         def invoke(self, prompt, attempts: int = 3):
-            last = None
             for _ in range(attempts):
                 last = structured.invoke(prompt)
-                if last is None:
-                    continue
-                # 模型偶发调用工具但传空参数，得到全默认值对象，同样视为失败重试
-                if _empty_dump is not None and last.model_dump() == _empty_dump:
+                if last is None or _is_all_default(last):
                     continue
                 return last
             raise RuntimeError(f"LLM 结构化输出连续 {attempts} 次为空: {schema.__name__}")

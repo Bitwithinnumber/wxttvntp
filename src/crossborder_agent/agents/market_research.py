@@ -2,10 +2,23 @@
 
 import statistics
 
+from pydantic import BaseModel, Field
+
 from ..config import get_settings
 from ..connectors.llm import get_structured_llm
 from ..models import CompetitorProduct, MarketReport
 from ..state import PipelineState
+
+
+class _MarketAnalysis(BaseModel):
+    """选品分析结果（仅 LLM 需要填写的字段，竞品等原始数据由代码填充）。"""
+
+    opportunity_score: int = Field(description="0-100 机会评分")
+    price_low: float | None = Field(default=None, description="建议切入价格带下限 USD")
+    price_high: float | None = Field(default=None, description="建议切入价格带上限 USD")
+    pain_points: list[str] = Field(description="3-6 条用户痛点（中文，标明依据）")
+    differentiation: str = Field(description="针对痛点的差异化切入建议（中文）")
+    analysis: str = Field(description="市场饱和度、细分需求、风险分析（中文）")
 
 
 def _search(keyword: str, marketplace: str) -> list[dict]:
@@ -52,7 +65,7 @@ def market_research_node(state: PipelineState) -> dict:
         )
     prices = [c.price for c in competitors if c.price]
 
-    structured = get_structured_llm(MarketReport)
+    structured = get_structured_llm(_MarketAnalysis)
     comp_lines = "\n".join(
         f"- {c.title[:80]} | ${c.price} | 评分{c.rating} | {c.reviews}评论" for c in competitors
     )
@@ -63,7 +76,7 @@ def market_research_node(state: PipelineState) -> dict:
         f"数据完备度：{len(prices)}/{len(competitors)} 个竞品有价格。"
         "若价格/评分数据不足，评分需保守并在 analysis 中说明数据局限。"
     )
-    report: MarketReport = structured.invoke(
+    result: _MarketAnalysis = structured.invoke(
         f"""你是跨境电商选品分析师。基于以下 {marketplace} 上关键词「{keyword}」的真实竞品数据、
 真实搜索联想词与真实用户评论/讨论摘要，输出选品分析：
 - opportunity_score (0-100)：综合竞争烈度、价格空间、痛点可改进性评分
@@ -82,10 +95,18 @@ def market_research_node(state: PipelineState) -> dict:
 {review_lines}
 """
     )
-    report.keyword = keyword
-    report.marketplace = marketplace
-    report.competitors = competitors
-    report.keyword_suggestions = suggestions
+    report = MarketReport(
+        keyword=keyword,
+        marketplace=marketplace,
+        competitors=competitors,
+        keyword_suggestions=suggestions,
+        opportunity_score=result.opportunity_score,
+        price_low=result.price_low,
+        price_high=result.price_high,
+        pain_points=result.pain_points,
+        differentiation=result.differentiation,
+        analysis=result.analysis,
+    )
     if prices:
         if not report.price_low:
             report.price_low, report.price_high = min(prices), max(prices)
